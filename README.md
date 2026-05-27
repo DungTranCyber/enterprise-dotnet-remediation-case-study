@@ -10,6 +10,12 @@ The goal was not just to uninstall old .NET versions. The goal was to do it safe
 
 ## Included Scripts
 
+| Script | Purpose |
+|---|---|
+| `scripts/DotNet-Detection.ps1` | Intune detection script. Detects unsupported .NET components and returns exit code `1` when remediation is needed. |
+| `scripts/DotNet-Remediation.ps1` | Intune remediation script. Installs supported .NET first when needed, then removes unsupported versions after validation. |
+| `scripts/DotNet-Detect-Remediate-SCCM-TaskSequence.ps1` | SCCM/MECM task sequence script. Combines detection, remediation, re-detection, uninstall logic, and local logging. |
+
 - `scripts/DotNet-Detection.ps1`  
   Intune detection script used to identify unsupported .NET components.
 
