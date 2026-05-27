@@ -55,4 +55,6 @@ The goal was not just to uninstall old .NET versions. The goal was to do it safe
   
 ## Disclaimer
 
-This is a sanitized portfolio case study. Test and adjust all scripts before using them in any production environment.
+This is a sanitized portfolio case study. The scripts do not contain company names, internal server names, usernames, private URLs, or production data.
+
+Test and adjust all scripts before using them in any production environment.
