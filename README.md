@@ -1,5 +1,5 @@
 # enterprise-dotnet-remediation-case-study
-Sanitized vulnerability remediation case study showing how outdated .NET findings were tracked, remediated, and validated using PowerShell and reporting automation.
+PowerShell case study for safely detecting, remediating, and validating outdated .NET components using Intune and SCCM.
 
 ------------------------------------
 Structure of this project:
