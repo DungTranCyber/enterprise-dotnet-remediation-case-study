@@ -1,17 +1,25 @@
-# ============================================================
-# SCCM Task Sequence Script - .NET Detect + Install + Uninstall
-#
-# Purpose:
-# - Detect unsupported .NET components below 8.0.27.
-# - For each architecture, x64 and x86:
-#   - If old .NET exists and supported replacement exists, uninstall old.
-#   - If old .NET exists but supported replacement is missing, install supported .NET first.
-#   - Re-detect after install.
-#   - Only uninstall old versions after supported replacement is confirmed.
-#
-# Log:
-# - C:\Windows\CCM\Logs\DotNet-Install-Uninstall.log
-# ============================================================
+<#
+.SYNOPSIS
+Detects and remediates unsupported Microsoft .NET components during an SCCM/MECM task sequence.
+
+.DESCRIPTION
+This script combines detection, installation, re-detection, and removal logic for unsupported
+Microsoft .NET components below the approved minimum version.
+
+It evaluates x64 and x86 components separately. If unsupported .NET exists and a supported
+replacement is missing, the script installs supported .NET first, re-detects the endpoint state,
+and only removes unsupported versions after supported .NET is confirmed.
+
+This script uses custom file-based logging because Start-Transcript did not work reliably in the
+SCCM task sequence context during testing.
+
+.NOTES
+Portfolio case study script.
+Sanitized for public GitHub use.
+
+Log file:
+C:\Windows\CCM\Logs\DotNet-Install-Uninstall.log
+#>
 
 $ErrorActionPreference = "Stop"
 
