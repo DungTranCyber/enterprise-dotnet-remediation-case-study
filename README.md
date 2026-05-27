@@ -37,6 +37,11 @@ The goal was not just to uninstall old .NET versions. The goal was to do it safe
 - Safe install-before-uninstall remediation logic
 - Endpoint logging and troubleshooting
 
+## Scripts
+
+- [PowerShell Scripts](scripts/)  
+  Contains the Intune detection script, Intune remediation script, and SCCM/MECM task sequence script.
+  
 ## Project Documentation
 
 - [Case Study](docs/case-study.md)  
