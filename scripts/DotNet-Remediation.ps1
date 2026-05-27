@@ -1,26 +1,28 @@
-######################Remediation:
-#This script does this:
-#1. Detect unsupported .NET
-#2. For each architecture: x64 / x86
-#3. If supported replacement already exists, uninstall old versions
-#4. If supported replacement does not exist, install supported .NET first
-#5. Re-detect
-#6. Then uninstall old versions only if safe
+<#
+.SYNOPSIS
+Remediates unsupported Microsoft .NET components on Windows endpoints.
 
-# ============================================================
-# Intune Remediation Script - .NET Install + Old Version Removal
-#
-# x64 installer:
-# dotnet-sdk-10.0.300-win-x64.exe
-#
-# x86 installer:
-# dotnet-sdk-8.0.421-win-x86.exe
-#
-# Goal:
-# - Install supported .NET first if needed.
-# - Then uninstall old unsupported .NET versions.
-# - Never remove old versions unless supported replacement exists.
-# ============================================================
+.DESCRIPTION
+This script is designed for Intune Proactive Remediations.
+
+It detects installed Microsoft .NET components from Windows registry uninstall keys,
+checks for unsupported versions below the approved minimum version, installs a
+supported replacement when needed, re-detects the endpoint state, and removes
+unsupported versions only after supported .NET is confirmed.
+
+The remediation logic evaluates x64 and x86 components separately to reduce
+application risk.
+
+.NOTES
+Portfolio case study script.
+Sanitized for public GitHub use.
+
+Key safety logic:
+- Do not uninstall unsupported .NET first.
+- Confirm or install supported .NET before removal.
+- Re-detect after installation.
+- Remove old versions only when supported replacement exists.
+#>
 
 $ErrorActionPreference = "Stop"
 
