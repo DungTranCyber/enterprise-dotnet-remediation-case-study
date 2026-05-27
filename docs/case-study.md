@@ -26,6 +26,16 @@ The project was not only a PowerShell automation task. It was a vulnerability ma
 
 Microsoft .NET and .NET Framework vulnerabilities have appeared in CISA KEV historically, including remote code execution vulnerabilities. Because of that, outdated .NET components were treated as security-relevant software that needed controlled remediation instead of blind removal.
 
+## Ownership Challenge
+
+Another major challenge was ownership.
+
+Because the affected .NET components existed across many different systems, it was not always clear which team owned the remediation. I reached out to multiple teams to identify the right owners, but in many cases ownership was unclear or delayed.
+
+Rather than waiting for someone else to take responsibility, I took initiative to drive the remediation effort forward. I reviewed the Tenable plugin output, analyzed affected systems, worked with technical teams and asset owners, and helped define a safer remediation path.
+
+This became more than a scripting task. It became a vulnerability management project that required ownership mapping, risk communication, technical validation, and coordination across teams.
+
 ## Component Selection
 
 One challenge was understanding which .NET components mattered from a vulnerability perspective.
