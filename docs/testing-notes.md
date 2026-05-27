@@ -31,3 +31,15 @@ x64 and x86 needed to be evaluated separately because a device could be complian
 ### 5. Safe Remediation
 
 The script should install or confirm supported .NET first, then uninstall unsupported versions.
+
+## SCCM Logging Lesson
+
+One technical issue I found was that `Start-Transcript` did not work reliably inside the SCCM task sequence context.
+
+The same transcript approach worked in normal PowerShell testing, but SCCM task sequence execution behaved differently. Because of that, I changed the SCCM version to use custom file-based logging instead.
+
+The SCCM script writes logs to:
+
+`C:\Windows\CCM\Logs\DotNet-Install-Uninstall.log`
+
+This made the remediation easier to troubleshoot with CMTrace or SCCM log review.
