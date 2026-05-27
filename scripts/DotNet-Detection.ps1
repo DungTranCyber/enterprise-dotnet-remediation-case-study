@@ -1,3 +1,17 @@
+<#
+.SYNOPSIS
+Detects unsupported Microsoft .NET components for Intune Proactive Remediations.
+
+.DESCRIPTION
+This script checks Windows registry uninstall paths for installed .NET components,
+compares detected versions against the approved minimum version, and exits with
+code 1 when remediation is needed.
+
+.NOTES
+Portfolio case study script.
+Sanitized for public GitHub use.
+#>
+
 # ============================================================
 # Intune Detection Script - Unsupported .NET Components
 #
