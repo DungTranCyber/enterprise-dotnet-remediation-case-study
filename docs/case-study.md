@@ -6,15 +6,7 @@ At first, the problem seemed simple: detect old .NET versions, install the suppo
 
 During testing, I found that the remediation logic needed to be safer. Removing old .NET components before confirming a supported replacement could create application risk.
 
-The final design used this logic:
-
-1. Detect installed .NET components from Windows registry uninstall keys.
-2. Identify unsupported versions below the approved minimum version.
-3. Separate x64 and x86 components.
-4. Confirm a supported replacement exists.
-5. Install supported .NET first when needed.
-6. Re-detect after installation.
-7. Remove unsupported versions only after the supported replacement is confirmed.
+The final design focused on safe remediation: confirm or install supported .NET first, re-detect the endpoint state, and only then remove unsupported components.
 
 This project shows how vulnerability remediation requires more than just patching. It also requires validation, testing, safe rollback thinking, and clear reporting.
 
@@ -62,3 +54,36 @@ I had to consider production risks such as:
 - What if uninstalling a component breaks an application?
 
 Because of this, remediation required coordination with technical teams and asset owners. If an application required .NET, the remediation path was not simply to remove it. The safer approach was to work with the owner or vendor to identify a supported version.
+
+## Final Logic
+
+The final workflow was designed to reduce production risk:
+
+1. Detect installed .NET components from registry uninstall keys.
+2. Parse the component name, version, architecture, and uninstall command.
+3. Identify unsupported versions below the approved minimum version.
+4. Evaluate x64 and x86 separately.
+5. Confirm whether supported replacements exist for the same component type and architecture.
+6. Install supported .NET first when needed.
+7. Re-detect after installation.
+8. Remove unsupported versions only after supported replacements are confirmed.
+9. Log results for troubleshooting and validation.
+
+## What I Learned
+
+This project helped me improve in several areas:
+
+- Building safer remediation logic instead of simple uninstall logic
+- Understanding which .NET components mattered based on Tenable plugin output
+- Handling x64 and x86 separately in PowerShell
+- Thinking through production risk before deployment
+- Working with technical teams and asset owners
+- Using testing to find logic gaps before production rollout
+
+## Business Value
+
+This project helped turn a large vulnerability issue into a controlled remediation workflow.
+
+Instead of manually tracking thousands of affected endpoints, the scripts created a repeatable way to detect, remediate, validate, and log outdated .NET components.
+
+The main value was reducing vulnerability exposure while lowering the risk of breaking applications that depended on .NET.
