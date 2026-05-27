@@ -1,6 +1,3 @@
-# enterprise-dotnet-remediation-case-study
-PowerShell case study for safely detecting, remediating, and validating outdated .NET components using Intune and SCCM.
-
 ------------------------------------
 Structure of this project:
 
