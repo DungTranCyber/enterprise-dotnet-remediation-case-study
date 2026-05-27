@@ -31,6 +31,17 @@ The goal was not just to uninstall old .NET versions. The goal was to do it safe
 - Safe install-before-uninstall remediation logic
 - Endpoint logging and troubleshooting
 
+## Project Documentation
+
+- [Case Study](docs/case-study.md)  
+  Full story of the remediation problem, ownership challenge, technical decisions, and business value.
+
+- [Testing Notes](docs/testing-notes.md)  
+  Technical issues found during testing, including version parsing, architecture handling, and SCCM logging.
+
+- [Lessons Learned](docs/lessons-learned.md)  
+  Summary of what this project taught me about vulnerability remediation, PowerShell, and production risk.
+  
 ## Disclaimer
 
 This is a sanitized portfolio case study. Test and adjust all scripts before using them in any production environment.
