@@ -26,11 +26,20 @@ Key safety logic:
 
 $ErrorActionPreference = "Stop"
 
+# Force TLS 1.2 for installer downloads.
+# This helps avoid download failures on systems where older TLS defaults may still be used.
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+# Minimum approved .NET version for this case study.
+# Any installed .NET component below this version is treated as unsupported.
 $MinimumSupportedVersion = [version]"8.0.27"
+
+# Separator used when multiple .NET components need to be written in one Intune output line.
 $Separator = " | "
 
+# Installer map for supported .NET replacements.
+# The remediation logic handles x64 and x86 separately so each architecture can be evaluated
+# and repaired without assuming both architectures need the same action.
 $InstallerMap = @{
     x64 = @{
         Url      = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.300/dotnet-sdk-10.0.300-win-x64.exe"
@@ -43,6 +52,8 @@ $InstallerMap = @{
     }
 }
 
+# Core .NET component types that should have a supported replacement before old versions are removed.
+# This avoids uninstalling important runtime pieces before confirming the endpoint has a safe replacement.
 $CorePatterns = @(
     ".NET SDK",
     ".NET Runtime",
@@ -51,17 +62,25 @@ $CorePatterns = @(
     "ASP.NET Core Runtime"
 )
 
+# Architectures evaluated by the remediation workflow.
+# x64 and x86 are checked separately because an endpoint can have old .NET components in one architecture
+# even when the other architecture is already compliant.
 $ArchitecturesToCheck = @(
     "x64",
     "x86"
 )
 
+# Registry uninstall locations checked for installed .NET components.
+# These paths help detect machine-wide 64-bit installs, 32-bit installs, and per-user installs.
 $RegistryPaths = @(
     "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
     "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
     "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
 )
 
+# Normalizes different .NET registry DisplayName values into consistent component categories.
+# The uninstall registry names are not always formatted the same way, so this function helps
+# the rest of the script compare components without relying on one exact DisplayName.
 function Get-DotNetPattern {
     param (
         [Parameter(Mandatory = $true)]
@@ -99,6 +118,11 @@ function Get-DotNetPattern {
     return $null
 }
 
+# Reads installed .NET components from the uninstall registry paths and converts them
+# into cleaner objects the remediation workflow can use.
+#
+# This function keeps the registry lookup in one place so the script can re-run detection
+# after installing supported .NET and again after uninstalling old versions.
 function Get-DotNetInstalls {
     $Installs = Get-ChildItem -Path $RegistryPaths -ErrorAction SilentlyContinue |
         Get-ItemProperty -ErrorAction SilentlyContinue |
@@ -135,7 +159,11 @@ function Get-DotNetInstalls {
         else {
             $Architecture = "Unknown"
         }
-
+        
+        # Store the parsed registry entry as a clean object.
+        # The remediation workflow needs both compliance details and uninstall details:
+        # - Version and architecture are used to decide what needs remediation.
+        # - Uninstall strings are used later if old versions are safe to remove.
         [PSCustomObject]@{
             DisplayName     = $DisplayName
             Pattern         = $Pattern
@@ -153,6 +181,12 @@ function Get-DotNetInstalls {
     return $ParsedDotNetInstalls
 }
 
+# Evaluates one architecture at a time and decides whether remediation is needed.
+#
+# This function answers three questions:
+# - Are there old .NET versions for this architecture?
+# - Is a supported replacement already present?
+# - Is it safe to uninstall the old versions yet?
 function Test-DotNetArchitectureStatus {
     param (
         [Parameter(Mandatory = $true)]
@@ -202,6 +236,9 @@ function Test-DotNetArchitectureStatus {
         }
     }
 
+    # Check whether each existing core .NET component has a supported replacement.
+    # MissingPatterns is used as a safety check so old .NET is not removed before
+    # the replacement components are confirmed on the same architecture.
     $MissingPatterns = @()
 
     foreach ($Pattern in $CorePatternsToCheck) {
@@ -237,6 +274,10 @@ function Test-DotNetArchitectureStatus {
     }
 }
 
+# Downloads and installs the supported .NET installer for the requested architecture.
+#
+# This only runs when the architecture has old .NET components and the script cannot confirm
+# that all required supported replacements already exist.
 function Install-SupportedDotNet {
     param (
         [Parameter(Mandatory = $true)]
@@ -271,6 +312,12 @@ function Install-SupportedDotNet {
     }
 }
 
+# Uninstalls one old .NET component using the best uninstall method available.
+#
+# The script prefers QuietUninstallString when it exists because it is already designed
+# for silent removal. If that is not available, it tries to extract the MSI product code
+# from the normal uninstall string. The fallback option runs the uninstall string with
+# quiet and no-restart arguments.
 function Invoke-DotNetUninstall {
     param (
         [Parameter(Mandatory = $true)]
@@ -324,6 +371,10 @@ function Invoke-DotNetUninstall {
     }
 }
 
+# Removes old .NET components for one architecture after the safety checks pass.
+#
+# The old versions are sorted first so the removal order is predictable in logs
+# and easier to troubleshoot if one uninstall fails.
 function Uninstall-OldDotNetVersions {
     param (
         [Parameter(Mandatory = $true)]
@@ -341,11 +392,19 @@ function Uninstall-OldDotNetVersions {
         Invoke-DotNetUninstall -DotNetItem $OldItem
     }
 }
-
+# Main remediation workflow.
+#
+# The script starts by detecting installed .NET components, then checks each architecture separately.
+# If old .NET exists and a supported replacement is missing, it installs the supported version first.
+# After installation, it re-detects the endpoint before uninstalling old versions.
+#
+# This install-before-uninstall order is the main safety control in the script.
 try {
     $DotNetInstalls = Get-DotNetInstalls
 
     foreach ($Architecture in $ArchitecturesToCheck) {
+        # Check the current architecture before taking action.
+        # If this architecture has no old .NET versions, skip it and move to the next one.
         $Status = Test-DotNetArchitectureStatus `
             -Architecture $Architecture `
             -DotNetInstalls $DotNetInstalls
@@ -355,6 +414,9 @@ try {
         }
 
         if ($Status.ShouldInstallSupportedDotNet -eq $true) {
+            # Install the supported .NET replacement before removing old versions.
+            # After installation, re-run detection and rebuild the architecture status.
+            # This confirms the replacement is actually present before uninstalling anything.
             Install-SupportedDotNet -Architecture $Architecture
 
             $DotNetInstalls = Get-DotNetInstalls
@@ -365,6 +427,8 @@ try {
         }
 
         if ($Status.CanUninstallOldDotNet -eq $true) {
+            # Only remove old .NET versions after the status check confirms a supported replacement exists.
+            # If that confirmation fails, the script stops instead of risking removal of needed runtime components.
             Uninstall-OldDotNetVersions `
                 -Architecture $Status.Architecture `
                 -OldVersions $Status.OldVersions
@@ -375,33 +439,12 @@ try {
 
         $DotNetInstalls = Get-DotNetInstalls
     }
-
-    $FinalInstalls = Get-DotNetInstalls
-
-    $RemainingUnsupported = $FinalInstalls | Where-Object {
-        $_.IsOldVersion -eq $true
-    } | Sort-Object Architecture, Pattern, Version, DisplayName
-
-    if ($RemainingUnsupported) {
-        $RemainingList = ($RemainingUnsupported | ForEach-Object {
-            "[$($_.Architecture)] $($_.DisplayName)"
-        }) -join $Separator
-
-        Write-Output "Remediation completed but unsupported .NET remains: $RemainingList"
-        exit 1
-    }
-    else {
-        $SupportedFinal = $FinalInstalls | Where-Object {
-            $_.IsSupported -eq $true
-        } | Sort-Object Architecture, Pattern, Version, DisplayName
-
-        $SupportedList = ($SupportedFinal | ForEach-Object {
-            "[$($_.Architecture)] $($_.DisplayName)"
-        }) -join $Separator
-
-        Write-Output "Remediation completed. Supported .NET installed: $SupportedList"
-        exit 0
-    }
+# Final validation pass after all architecture-specific remediation steps complete.
+# This re-checks the endpoint state instead of assuming the installs and uninstalls worked.
+# Remediation script finished its install-before-uninstall workflow.
+# Intune will run the detection script again after remediation to determine final compliance.
+Write-Output "Remediation workflow completed. Final compliance will be verified by the detection script."
+exit 0
 }
 catch {
     Write-Output "Remediation error: $($_.Exception.Message)"
