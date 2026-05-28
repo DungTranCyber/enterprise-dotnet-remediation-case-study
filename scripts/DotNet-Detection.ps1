@@ -19,11 +19,18 @@ Exit codes:
 - 0 = No unsupported .NET detected; remediation not needed.
 #>
 
-$ErrorActionPreference = "SilentlyContinue"
+$ErrorActionPreference = "Stop"
 
+# Minimum approved .NET version for this case study.
+# Any detected .NET component below this version is treated as unsupported
+# and will trigger Intune remediation.
 $MinimumSupportedVersion = [version]"8.0.27"
+
 $Separator = " | "
 
+# Check 64-bit and 32-bit installs,
+# and per-user installs. This helps catch both x64 and x86 .NET components
+# that may appear in different uninstall registry locations. My favorite place to get apps info.
 $RegistryPaths = @(
     "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
     "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
