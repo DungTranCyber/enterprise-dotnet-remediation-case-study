@@ -4,7 +4,7 @@ PowerShell case study for safely detecting, remediating, and validating outdated
 
 ## What This Project Shows
 
-This project demonstrates how unsupported .NET components can be detected and remediated using enterprise deployment tools.
+This project walks through how I detected unsupported .NET components, tested the remediation logic, and built a safer install-before-uninstall workflow for Intune and SCCM/MECM.
 
 The goal was not just to uninstall old .NET versions. The goal was to do it safely by confirming that a supported replacement exists before removing unsupported components.
 
@@ -15,15 +15,6 @@ The goal was not just to uninstall old .NET versions. The goal was to do it safe
 | `scripts/DotNet-Detection.ps1` | Intune detection script. Detects unsupported .NET components and returns exit code `1` when remediation is needed. |
 | `scripts/DotNet-Remediation.ps1` | Intune remediation script. Installs supported .NET first when needed, then removes unsupported versions after validation. |
 | `scripts/DotNet-Detect-Remediate-SCCM-TaskSequence.ps1` | SCCM/MECM task sequence script. Combines detection, remediation, re-detection, uninstall logic, and local logging. |
-
-- `scripts/DotNet-Detection.ps1`  
-  Intune detection script used to identify unsupported .NET components.
-
-- `scripts/DotNet-Remediation.ps1`  
-  Intune remediation script used to install supported .NET and remove unsupported versions.
-
-- `scripts/DotNet-Detect-Remediate-SCCM-TaskSequence.ps1`  
-  SCCM/MECM task sequence version that performs detection, remediation, and local logging.
 
 ## Skills Demonstrated
 
