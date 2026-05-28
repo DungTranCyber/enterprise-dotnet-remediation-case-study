@@ -37,6 +37,9 @@ $RegistryPaths = @(
     "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
 )
 
+# Normalizes different .NET display names into component categories.
+# This makes the final output easier to read and helps avoid matching
+# unrelated Microsoft entries that only contain ".NET" in the name.
 function Get-DotNetPattern {
     param (
         [Parameter(Mandatory = $true)]
