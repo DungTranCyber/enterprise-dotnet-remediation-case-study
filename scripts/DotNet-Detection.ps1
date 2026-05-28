@@ -124,7 +124,9 @@ try {
         else {
             $Architecture = "Unknown"
         }
-
+        # Store the cleaned detection result as an object.
+        # This makes it easier to sort, filter, and report unsupported .NET installs later
+        # instead of working with raw registry entries.
         [PSCustomObject]@{
             DisplayName  = $DisplayName
             Pattern      = $Pattern
@@ -134,7 +136,11 @@ try {
             IsOldVersion = $DetectedVersion -lt $MinimumSupportedVersion
         }
     }
-
+    # Split the parsed .NET results into unsupported and supported groups.
+    #
+    # Unsupported items are below the approved minimum version and should trigger remediation.
+    # Supported items are kept so the detection output can still show what was found
+    # when the endpoint does not need remediation.
     $UnsupportedDotNet = $ParsedDotNetInstalls | Where-Object {
         $_.IsOldVersion -eq $true
     } | Sort-Object Architecture, Pattern, Version, DisplayName
@@ -142,7 +148,10 @@ try {
     $SupportedDotNet = $ParsedDotNetInstalls | Where-Object {
         $_.IsSupported -eq $true
     } | Sort-Object Architecture, Pattern, Version, DisplayName
-
+    
+    # If any unsupported .NET components were found, return exit code 1.
+    # Intune Proactive Remediations uses this as the signal that remediation should run.
+    # The output includes the architecture and display name to make troubleshooting easier.
     if ($UnsupportedDotNet) {
         $UnsupportedList = ($UnsupportedDotNet | ForEach-Object {
             "[$($_.Architecture)] $($_.DisplayName)"
@@ -152,6 +161,9 @@ try {
         exit 1
     }
     else {
+        # If no unsupported .NET components were found, return exit code 0.
+        # When supported .NET components exist, include them in the output so the result shows what was checked.
+        # If no matching .NET components were found, the device is still compliant because there is nothing unsupported to remove.
         if ($SupportedDotNet) {
             $SupportedList = ($SupportedDotNet | ForEach-Object {
                 "[$($_.Architecture)] $($_.DisplayName)"
@@ -167,6 +179,10 @@ try {
     }
 }
 catch {
-    Write-Output "Detection error: $($_.Exception.Message)"
-    exit 1
+    # If detection fails, do not trigger remediation automatically.
+    # A detection error means the script could not confirm whether unsupported .NET exists.
+    # Return exit code 0 so remediation does not run based on an unknown state,
+    # but still write the error message so it can be reviewed in Intune detection output.
+    Write-Output "Detection error. Unable to confirm .NET compliance status: $($_.Exception.Message)"
+    exit 0
 }
