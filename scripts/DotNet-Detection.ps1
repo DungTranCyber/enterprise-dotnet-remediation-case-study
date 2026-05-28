@@ -3,34 +3,38 @@
 Detects unsupported Microsoft .NET components for Intune Proactive Remediations.
 
 .DESCRIPTION
-This script checks Windows registry uninstall paths for installed Microsoft .NET components,
-compares detected versions against the approved minimum supported version, and exits with
-code 1 when remediation is needed.
+Checks common Windows uninstall registry locations for Microsoft .NET components.
+Detected versions are compared against the minimum approved version.
 
-The detection output is kept short because Intune Proactive Remediations works best with
-clear single-line status output.
+Exit codes:
+  1 = Unsupported .NET detected; remediation needed
+  0 = No unsupported .NET detected
 
 .NOTES
 Portfolio case study script.
 Sanitized for public GitHub use.
 
-Exit codes:
-- 1 = Unsupported .NET detected; remediation needed.
-- 0 = No unsupported .NET detected; remediation not needed.
+The detection output is kept short because Intune Proactive Remediations works best with
+clear single-line status output.
 #>
 
 $ErrorActionPreference = "Stop"
 
 # Minimum approved .NET version for this case study.
-# Any detected .NET component below this version is treated as unsupported
-# and will trigger Intune remediation.
+# Anything below this version is treated as unsupported.
 $MinimumSupportedVersion = [version]"8.0.27"
-
 $Separator = " | "
 
-# Check 64-bit and 32-bit installs,
-# and per-user installs. This helps catch both x64 and x86 .NET components
-# that may appear in different uninstall registry locations. My favorite place to get apps info.
+
+# Windows can store installed application information in multiple locations.
+# Checking all common uninstall registry paths helps detect:
+#
+# - 64-bit applications
+# - 32-bit applications on 64-bit systems
+# - Per-user installs
+#
+# This matters in enterprise environments because different .NET components
+# may appear in different registry locations depending on how they were installed.
 $RegistryPaths = @(
     "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
     "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
@@ -73,10 +77,17 @@ function Get-DotNetPattern {
     elseif ($DisplayName -match "^Microsoft \.NET Toolset\s+\d+\.\d+\.\d+") {
         return ".NET Toolset"
     }
-
+    
     return $null
 }
 
+# Main detection workflow:
+# 1. Read installed software entries from Windows uninstall registry paths.
+# 2. Keep only Microsoft .NET and ASP.NET Core Runtime entries.
+# 3. Ignore unrelated entries by matching known .NET component naming patterns.
+# 4. Extract the version and architecture from each display name.
+# 5. Compare each detected version against the approved minimum version.
+# 6. Return exit code 1 if old .NET is found so Intune can run remediation.
 try {
     $Installs = Get-ChildItem -Path $RegistryPaths -ErrorAction SilentlyContinue |
         Get-ItemProperty -ErrorAction SilentlyContinue |
